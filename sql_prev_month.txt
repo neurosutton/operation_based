@@ -1,0 +1,7 @@
+DECLARE @startdate varchar(8)
+DECLARE @enddate varchar(8)
+SET @enddate = CONVERT(varchar(8),DATEADD(dd,-DATEPART(dd,GETDATE()), GETDATE()),112) --first of this month
+SET @startdate = CONVERT(VARCHAR(8),DATEADD(MM,-1, DATEADD(dd,+1,@enddate)),112)
+
+SELECT @startdate
+SELECT @enddate
