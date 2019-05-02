@@ -1,0 +1,45 @@
+/* Search any term, provider, department, etc. to build a table that will run faster than a LIKE on ambiguous terms.
+Date: April 2019
+Author: Brianne Sutton, PhD
+*/
+
+DROP TABLE IF EXISTS #TMP
+
+-- make a table to terms that you want to search for
+CREATE TABLE #TERM_TBL (SEARCH_TERM VARCHAR(25) NOT NULL)
+INSERT INTO #TERM_TBL(SEARCH_TERM) VALUES ('%%')   -- Add terms and search logic here. MAKE SURE EACH TERM IS ENCASED IN ()
+
+-- Define the table that you want to pull the terms from
+DECLARE @CHOSEN_TABLE VARCHAR(40)
+SET @CHOSEN_TABLE = '' -- Main table that you are searching
+DECLARE @ID_FIELD VARCHAR(40)
+SET @ID_FIELD = ''  -- Usually a string field that will match your search terms
+DECLARE @VALUE_FIELD VARCHAR(40)
+SET @VALUE_FIELD = '' -- Usually the ID variable that will be primary and foreign key
+
+-- create the table structure easily
+DECLARE @DynamicQuery NVARCHAR(MAX)
+SET @DynamicQuery =
+	'SELECT TOP 1 SUB.* INTO ##TMP FROM (SELECT ' + @ID_FIELD + ',' + @VALUE_FIELD + ' FROM ' + @CHOSEN_TABLE +' AS CHSN_TBL) SUB'
+EXEC SP_EXECUTESQL @DYNAMICQUERY
+
+SELECT * INTO #TMP FROM ##TMP
+DROP TABLE ##TMP
+
+-- create the loop through the search terms
+INSERT INTO #TMP
+-- First, delete the top entry, since it is only a placeholder
+	EXEC('DELETE TOP(1) FROM #TMP;
+
+	SELECT DISTINCT '
+		+ @ID_FIELD + ','
+		+ @VALUE_FIELD +
+	' FROM ' + @CHOSEN_TABLE + ' AS CHSN_TBL
+	JOIN #TERM_TBL ON ' + @ID_FIELD + ' LIKE #TERM_TBL.SEARCH_TERM')
+
+-- view the results
+SELECT DISTINCT
+	#TMP.*
+FROM #TMP
+
+DROP TABLE #TMP
